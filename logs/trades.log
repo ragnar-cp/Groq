@@ -1,0 +1,186 @@
+2026-03-28 16:43:13,653 [INFO] main: Training ML model…
+2026-03-28 16:43:13,919 [INFO] ml.train: Starting ML training pipeline…
+2026-03-28 16:43:13,924 [INFO] ml.train: Connecting to MT5…
+2026-03-28 16:43:13,933 [INFO] data.mt5_feed: MT5 connected — account #24468847
+2026-03-28 16:43:13,946 [INFO] data.historical_fetcher: Gold-related symbols on your broker: ['XAUUSD.crp', 'XAUUSD', 'XAUAUD', 'XAUEUR', 'XAUJPY', 'BTCXAU', 'ETHXAU']
+2026-03-28 16:43:13,947 [INFO] data.historical_fetcher: Symbol 'XAUUSD' confirmed available.
+2026-03-28 16:43:13,947 [INFO] data.historical_fetcher: Fetching 1 years of M15 history (2025-03-28 → 2026-03-28)…
+2026-03-28 16:43:13,952 [INFO] data.historical_fetcher: Fetched 23581 M15 candles. Labelling…
+2026-03-28 16:43:14,052 [INFO] data.historical_fetcher: Labelled dataset: 23564 rows (12136 BUY, 11428 SELL)
+2026-03-28 16:43:18,707 [INFO] ml.train: Training XGBoost on 23344 samples…
+2026-03-28 16:43:19,689 [INFO] ml.train: Model saved to ml/model.pkl
+2026-03-28 16:43:19,700 [INFO] ml.train: Model evaluation (last 1000 samples):
+              precision    recall  f1-score   support
+
+        SELL       0.60      0.53      0.57       588
+         BUY       0.43      0.50      0.46       412
+
+    accuracy                           0.52      1000
+   macro avg       0.52      0.52      0.51      1000
+weighted avg       0.53      0.52      0.52      1000
+
+2026-03-28 16:43:19,702 [INFO] main: Training complete. Exiting.
+2026-03-28 16:43:29,940 [INFO] main: ============================================================
+2026-03-28 16:43:29,941 [INFO] main: XAUUSD AI Trading Bot starting in REPLAY mode
+2026-03-28 16:43:29,941 [INFO] main: ============================================================
+2026-03-28 16:43:29,941 [INFO] main: Replay mode — MT5 connection skipped.
+2026-03-28 16:43:30,213 [INFO] data.mt5_feed: MT5 connected — account #24468847
+2026-03-28 16:43:30,812 [INFO] ml.predict: ML model loaded (trained at 2026-03-28 16:43:19.682588).
+2026-03-28 16:43:30,813 [INFO] main: Thread started: tick_stream
+2026-03-28 16:43:30,821 [INFO] data.tick_stream: Tick stream started.
+2026-03-28 16:43:30,821 [INFO] data.tick_stream: Replay mode — tick stream is passive (candle watcher drives price).
+2026-03-28 16:43:31,315 [INFO] main: Thread started: candle_watcher
+2026-03-28 16:43:31,323 [INFO] data.candle_watcher: Starting in REPLAY mode (2026-01-01 → 2026-03-01)
+2026-03-28 16:43:31,324 [INFO] data.candle_watcher: Loading replay data 2026-01-01 → 2026-03-01 …
+2026-03-28 16:43:31,357 [INFO] data.candle_watcher: Replay loaded — 3752 M15 candles. Starting playback…
+2026-03-28 16:43:31,366 [INFO] data.candle_watcher: Bias changed: UNKNOWN → CONSOLIDATING
+2026-03-28 16:43:31,822 [INFO] main: Thread started: news_watcher
+2026-03-28 16:43:32,324 [INFO] main: Thread started: telegram_bot
+2026-03-28 16:43:32,327 [INFO] telegram_bot.bot: Telegram bot started.
+2026-03-28 16:43:32,744 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:43:32,842 [INFO] telegram_bot.bot: Telegram polling started.
+2026-03-28 16:43:33,579 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getMe "HTTP/1.1 200 OK"
+2026-03-28 16:43:33,753 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-28 16:43:33,754 [INFO] telegram.ext.Application: Application started
+2026-03-28 16:43:34,329 [INFO] data.news_feed: Breaking news: Hudbay Provides Annual Reserve and Resource Update with Mine Life Extensions and Improved Three-Year Production Outlook
+2026-03-28 16:43:34,330 [INFO] data.news_feed: Breaking news: LSU's Grace Knox brings Las Vegas roots and Southern Cal success to Sweet 16
+2026-03-28 16:43:34,330 [INFO] data.news_feed: Breaking news: Humacyte Announces Fourth Quarter and Year End 2025 Financial Results and Provides Business Update
+2026-03-28 16:43:34,331 [WARNING] execution.alert: Telegram send failed to 7858967749: Unknown error in HTTP implementation: RuntimeError('Event loop is closed')
+2026-03-28 16:43:35,202 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-28 16:43:35,220 [INFO] analysis.sentiment: Sentiment: BULLISH — Inflation and rupee slump support gold
+2026-03-28 16:43:36,572 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:43:36,576 [INFO] main: All threads running. Main loop active.
+2026-03-28 16:43:44,257 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:43:48,969 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:43:49,794 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendChatAction "HTTP/1.1 200 OK"
+2026-03-28 16:43:50,707 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-28 16:43:51,219 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:43:59,207 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:44:09,448 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:44:11,720 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:44:12,620 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendChatAction "HTTP/1.1 200 OK"
+2026-03-28 16:44:13,194 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-28 16:44:13,586 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:44:21,909 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:44:27,572 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:44:28,493 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendChatAction "HTTP/1.1 200 OK"
+2026-03-28 16:44:29,313 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-28 16:44:29,824 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:44:37,810 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:44:48,052 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:44:58,241 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:45:08,410 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:45:17,554 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:45:18,465 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendChatAction "HTTP/1.1 200 OK"
+2026-03-28 16:45:19,690 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-28 16:45:20,048 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:45:27,783 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:45:38,134 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:45:48,366 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:45:50,089 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:45:51,140 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendChatAction "HTTP/1.1 200 OK"
+2026-03-28 16:45:52,258 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-28 16:45:52,667 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:46:00,323 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:46:10,587 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:46:20,832 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:46:21,436 [INFO] main: Shutdown requested by user.
+2026-03-28 16:46:21,436 [INFO] main: Shutting down…
+2026-03-28 16:46:21,446 [WARNING] execution.alert: Telegram send failed to 7858967749: Unknown error in HTTP implementation: RuntimeError('Event loop is closed')
+2026-03-28 16:46:21,447 [INFO] main: Shutdown complete.
+2026-03-28 16:46:30,348 [INFO] main: ============================================================
+2026-03-28 16:46:30,349 [INFO] main: XAUUSD AI Trading Bot starting in LIVE mode
+2026-03-28 16:46:30,349 [INFO] main: ============================================================
+2026-03-28 16:46:30,743 [INFO] data.mt5_feed: MT5 connected — account #24468847
+2026-03-28 16:46:31,355 [INFO] ml.predict: ML model loaded (trained at 2026-03-28 16:43:19.682588).
+2026-03-28 16:46:31,356 [INFO] main: Thread started: tick_stream
+2026-03-28 16:46:31,357 [INFO] data.tick_stream: Tick stream started.
+2026-03-28 16:46:31,859 [INFO] main: Thread started: candle_watcher
+2026-03-28 16:46:31,860 [INFO] data.candle_watcher: Starting in LIVE mode — watching M15/H1/H4 closes.
+2026-03-28 16:46:32,361 [INFO] main: Thread started: news_watcher
+2026-03-28 16:46:32,863 [INFO] main: Thread started: telegram_bot
+2026-03-28 16:46:32,864 [INFO] telegram_bot.bot: Telegram bot started.
+2026-03-28 16:46:33,466 [INFO] telegram_bot.bot: Telegram polling started.
+2026-03-28 16:46:34,120 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getMe "HTTP/1.1 200 OK"
+2026-03-28 16:46:34,312 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/deleteWebhook "HTTP/1.1 200 OK"
+2026-03-28 16:46:34,314 [INFO] telegram.ext.Application: Application started
+2026-03-28 16:46:34,594 [INFO] data.news_feed: Breaking news: Hudbay Provides Annual Reserve and Resource Update with Mine Life Extensions and Improved Three-Year Production Outlook
+2026-03-28 16:46:34,595 [INFO] data.news_feed: Breaking news: LSU's Grace Knox brings Las Vegas roots and Southern Cal success to Sweet 16
+2026-03-28 16:46:34,595 [INFO] data.news_feed: Breaking news: Humacyte Announces Fourth Quarter and Year End 2025 Financial Results and Provides Business Update
+2026-03-28 16:46:35,709 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:46:36,365 [WARNING] execution.alert: Telegram send failed to 7858967749: Unknown error in HTTP implementation: RuntimeError('Event loop is closed')
+2026-03-28 16:46:36,366 [INFO] main: All threads running. Main loop active.
+2026-03-28 16:46:36,503 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-28 16:46:36,510 [INFO] analysis.sentiment: Sentiment: BULLISH — Inflation and rupee decline support gold
+2026-03-28 16:46:44,995 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:46:47,357 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:46:48,271 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendChatAction "HTTP/1.1 200 OK"
+2026-03-28 16:46:48,988 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-28 16:46:49,397 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:46:57,590 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:47:06,367 [WARNING] main: Tick stream stale (35 s). Check MT5 connection.
+2026-03-28 16:47:07,829 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:47:12,641 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:47:13,662 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendChatAction "HTTP/1.1 200 OK"
+2026-03-28 16:47:14,943 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-28 16:47:15,341 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:47:22,881 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:47:33,068 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:47:36,368 [WARNING] main: Tick stream stale (65 s). Check MT5 connection.
+2026-03-28 16:47:43,260 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:47:53,443 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:47:56,982 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:47:58,108 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendChatAction "HTTP/1.1 200 OK"
+2026-03-28 16:47:59,132 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-28 16:47:59,544 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:48:06,369 [WARNING] main: Tick stream stale (95 s). Check MT5 connection.
+2026-03-28 16:48:07,224 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:48:17,462 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:48:27,660 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:48:34,539 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:48:35,338 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendChatAction "HTTP/1.1 200 OK"
+2026-03-28 16:48:36,194 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-28 16:48:36,373 [WARNING] main: Tick stream stale (125 s). Check MT5 connection.
+2026-03-28 16:48:36,646 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:48:44,808 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:48:55,047 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:49:05,233 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:49:05,737 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:49:06,376 [WARNING] main: Tick stream stale (155 s). Check MT5 connection.
+2026-03-28 16:49:06,614 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendChatAction "HTTP/1.1 200 OK"
+2026-03-28 16:49:07,442 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-28 16:49:07,843 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:49:15,934 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:49:26,275 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:49:36,378 [WARNING] main: Tick stream stale (185 s). Check MT5 connection.
+2026-03-28 16:49:36,595 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:49:38,668 [INFO] data.news_feed: Breaking news: Kevin Warsh confirmation as new Fed chair ‘at an impasse’ as Iran war troubles mount: sources
+2026-03-28 16:49:38,669 [INFO] data.news_feed: Breaking news: Trump Drones On For 5 Minutes About *Checks Notes* Sharpies
+2026-03-28 16:49:38,669 [INFO] data.news_feed: Breaking news: Rupee slumps to record low past 94/USD, set for worst fiscal in more than a decade
+2026-03-28 16:49:39,473 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:49:39,971 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-28 16:49:39,972 [INFO] analysis.sentiment: Sentiment: BULLISH — Inflation and rupee slump support gold
+2026-03-28 16:49:47,003 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:49:57,207 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:50:06,381 [WARNING] main: Tick stream stale (215 s). Check MT5 connection.
+2026-03-28 16:50:07,449 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:50:17,783 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:50:23,787 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:50:24,671 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendChatAction "HTTP/1.1 200 OK"
+2026-03-28 16:50:25,465 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-28 16:50:25,872 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:50:33,970 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:50:36,382 [WARNING] main: Tick stream stale (245 s). Check MT5 connection.
+2026-03-28 16:50:44,202 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:50:54,029 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:50:54,854 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendChatAction "HTTP/1.1 200 OK"
+2026-03-28 16:50:56,337 [INFO] httpx: HTTP Request: POST https://api.groq.com/openai/v1/chat/completions "HTTP/1.1 200 OK"
+2026-03-28 16:50:56,744 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/sendMessage "HTTP/1.1 200 OK"
+2026-03-28 16:51:04,274 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:51:06,383 [WARNING] main: Tick stream stale (275 s). Check MT5 connection.
+2026-03-28 16:51:14,512 [INFO] httpx: HTTP Request: POST https://api.telegram.org/bot8777450125:AAE2mccZn4IO8d3ePYIkGliPRVkm6nLsxdM/getUpdates "HTTP/1.1 200 OK"
+2026-03-28 16:51:17,830 [INFO] main: Shutdown requested by user.
+2026-03-28 16:51:17,831 [INFO] main: Shutting down…
+2026-03-28 16:51:17,831 [INFO] data.mt5_feed: MT5 disconnected.
+2026-03-28 16:51:17,833 [WARNING] execution.alert: Telegram send failed to 7858967749: Unknown error in HTTP implementation: RuntimeError('Event loop is closed')
+2026-03-28 16:51:17,834 [INFO] main: Shutdown complete.
