@@ -38,9 +38,73 @@ def stop():
 
 # ── Live mode ────────────────────────────────────────────────
 
+
+# ── Warm-up helpers ──────────────────────────────────────────
+
+def _warm_up_indicators(get_candles_fn):
+    """Pre-populate shared_state indicators immediately on live startup."""
+    try:
+        from analysis.trend import calculate_trend
+        from analysis.indicators import calculate_indicators
+
+        for tf in ["H4", "H1"]:
+            df = get_candles_fn(tf, count=250)
+            if df is not None and not df.empty:
+                trend = calculate_trend(df)
+                shared_state.set(f"{tf.lower()}_trend", trend)
+                logger.info("Startup %s trend: %s", tf, trend)
+
+        m15_df = get_candles_fn("M15", count=250)
+        if m15_df is not None and not m15_df.empty:
+            mid = float(m15_df.iloc[-1]["close"])
+            spread = 0.3
+            shared_state.update_tick(mid - spread/2, mid + spread/2)
+            indicators = calculate_indicators(m15_df)
+            if indicators:
+                for k, v in indicators.items():
+                    shared_state.set(k, v)
+            logger.info("Startup indicators populated. Price: %.2f", mid)
+
+        _update_bias_state()
+    except Exception as exc:
+        logger.warning("Warm-up failed: %s", exc)
+
+
+def _warm_up_indicators_from_df(m15_df, h1_df, h4_df):
+    """Pre-populate shared_state from replay history slices."""
+    try:
+        from analysis.trend import calculate_trend
+        from analysis.indicators import calculate_indicators
+
+        if h4_df is not None and not h4_df.empty:
+            trend = calculate_trend(h4_df.iloc[:50] if len(h4_df) >= 50 else h4_df)
+            shared_state.set("h4_trend", trend)
+
+        if h1_df is not None and not h1_df.empty:
+            trend = calculate_trend(h1_df.iloc[:50] if len(h1_df) >= 50 else h1_df)
+            shared_state.set("h1_trend", trend)
+
+        indicators = calculate_indicators(m15_df)
+        if indicators:
+            for k, v in indicators.items():
+                shared_state.set(k, v)
+
+        mid = float(m15_df.iloc[-1]["close"])
+        spread = 0.3
+        shared_state.update_tick(mid - spread/2, mid + spread/2)
+        _update_bias_state()
+        logger.info("Replay warm-up done. Price: %.2f RSI: %.1f",
+                    mid, indicators.get("rsi_h1", 0) if indicators else 0)
+    except Exception as exc:
+        logger.warning("Replay warm-up failed: %s", exc)
+
+
 def _run_live():
     """Poll MT5 every 5 seconds; trigger analysis when a candle closes."""
     from data.mt5_feed import get_candles
+
+    # ── Pre-populate indicators immediately on startup ────────
+    _warm_up_indicators(get_candles)
 
     while not _stop_event.is_set():
         try:
@@ -98,6 +162,10 @@ def _run_replay():
         return
 
     logger.info("Replay loaded — %d M15 candles. Starting playback…", len(m15_df))
+
+    # ── Pre-populate indicators from first 200 candles ────────
+    if len(m15_df) >= 200:
+        _warm_up_indicators_from_df(m15_df.iloc[:200], h1_df, h4_df)
 
     for i, row in m15_df.iterrows():
         if _stop_event.is_set():
