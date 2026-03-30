@@ -40,7 +40,15 @@ def predict(df: pd.DataFrame, indicators: Optional[Dict]) -> Tuple[float, str]:
     """
     Build features from live data and return (probability, direction).
     probability: 0.0 – 1.0
-    direction:   "BUY" | "SELL" | "NONE"
+    direction:   "BUY" | "SELL" | "WEAK_BUY" | "WEAK_SELL"
+
+    Thresholds:
+      >= 0.60  → strong signal  (BUY / SELL)       — use for auto-execution
+      >= 0.55  → weak signal    (WEAK_BUY / WEAK_SELL) — alert only
+      <  0.55  → direction still shown but labelled WEAK_BUY/WEAK_SELL
+                 so signal_fusion can weight it appropriately
+    Direction is ALWAYS returned based on whichever side is stronger —
+    "NONE" is never returned so the UI always shows something meaningful.
     """
     if _model is None:
         logger.warning("ML: model not loaded — call load_model() at startup")
@@ -52,21 +60,30 @@ def predict(df: pd.DataFrame, indicators: Optional[Dict]) -> Tuple[float, str]:
             logger.warning("ML: feature build returned None — indicators may not be ready yet")
             return 0.0, "NONE"
 
-        X       = np.array([features], dtype=np.float32)
-        proba   = _model.predict_proba(X)[0]
+        X         = np.array([features], dtype=np.float32)
+        proba     = _model.predict_proba(X)[0]
         prob_up   = float(proba[1])
         prob_down = float(proba[0])
 
-        logger.info("ML raw → UP: %.1f%%  DOWN: %.1f%%", prob_up*100, prob_down*100)
+        logger.info("ML raw → UP: %.1f%%  DOWN: %.1f%%", prob_up * 100, prob_down * 100)
 
+        # Strong signals — cleared for signal fusion and auto-execution
         if prob_up >= 0.60:
+            logger.info("ML strong BUY signal: %.1f%%", prob_up * 100)
             return prob_up, "BUY"
-        elif prob_down >= 0.60:
+        if prob_down >= 0.60:
+            logger.info("ML strong SELL signal: %.1f%%", prob_down * 100)
             return prob_down, "SELL"
+
+        # Weak signals (0.55–0.59) — direction shown, lower weight in fusion
+        if prob_up >= prob_down:
+            direction = "WEAK_BUY" if prob_up >= 0.55 else "WEAK_BUY"
+            logger.info("ML weak BUY: %.1f%%", prob_up * 100)
+            return prob_up, direction
         else:
-            # Uncertain zone — return stronger probability for display, direction NONE
-            stronger = prob_up if prob_up >= prob_down else prob_down
-            return stronger, "NONE"
+            direction = "WEAK_SELL" if prob_down >= 0.55 else "WEAK_SELL"
+            logger.info("ML weak SELL: %.1f%%", prob_down * 100)
+            return prob_down, direction
 
     except Exception as exc:
         logger.error("ML predict error: %s", exc, exc_info=True)
