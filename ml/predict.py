@@ -43,6 +43,7 @@ def predict(df: pd.DataFrame, indicators: Optional[Dict]) -> Tuple[float, str]:
     direction:   "BUY" | "SELL" | "NONE"
     """
     if _model is None:
+        logger.warning("ML: model not loaded — call load_model() at startup")
         return 0.0, "NONE"
 
     try:
@@ -68,8 +69,24 @@ def predict(df: pd.DataFrame, indicators: Optional[Dict]) -> Tuple[float, str]:
             return stronger, "NONE"
 
     except Exception as exc:
-        logger.error("ML predict error: %s", exc)
+        logger.error("ML predict error: %s", exc, exc_info=True)
         return 0.0, "NONE"
+
+
+def _get(ind: dict, key: str, default: float) -> float:
+    """
+    Safe indicator lookup that only falls back to default when the value is
+    actually missing (None / key absent) — NOT when it is 0.0 or any other
+    legitimate falsy number.
+
+    BUG FIX: the old code used `ind.get(key) or default` which replaces ANY
+    falsy value (0, 0.0, False) with the default.  For indicators like
+    dist_ema50 that are legitimately 0 when price == EMA, this silently
+    corrupted every feature that happened to be zero and sent a garbage
+    vector to the model.
+    """
+    val = ind.get(key)
+    return default if val is None else float(val)
 
 
 def _build_live_features(df: pd.DataFrame, ind: Optional[Dict]) -> Optional[list]:
@@ -91,24 +108,34 @@ def _build_live_features(df: pd.DataFrame, ind: Optional[Dict]) -> Optional[list
         low   = df["low"]
         last  = df.iloc[-1]
 
-        c      = float(close.iloc[-1])
-        e50    = ind.get("ema50_h1")  or c
-        e200   = ind.get("ema200_h1") or c
-        e20    = ind.get("ema20_h1")  or c
-        atr    = ind.get("atr_h1")    or 10.0
-        atr_r  = ind.get("atr_ratio") or 1.0
-        adx    = ind.get("adx_h1")    or 25.0
-        rsi    = ind.get("rsi_h1")    or 50.0
-        bb_pos = ind.get("bb_position") or 0.5
+        c = float(close.iloc[-1])
 
-        dist_ema50  = ind.get("dist_ema50_pct",  0) or 0
-        dist_ema200 = ind.get("dist_ema200_pct", 0) or 0
-        prev_range  = ind.get("prev_candle_range", atr) or atr
+        # ── FIX: use _get() so that 0.0 / 0 values are preserved correctly ──
+        e50    = _get(ind, "ema50_h1",  c)
+        e200   = _get(ind, "ema200_h1", c)
+        e20    = _get(ind, "ema20_h1",  c)
+        atr    = _get(ind, "atr_h1",    10.0)
+        atr_r  = _get(ind, "atr_ratio", 1.0)
+        adx    = _get(ind, "adx_h1",    25.0)
+        rsi    = _get(ind, "rsi_h1",    50.0)
+        bb_pos = _get(ind, "bb_position", 0.5)
 
-        high_val = last.get("high", c) if hasattr(last, "get") else float(last["high"])
-        low_val  = last.get("low",  c) if hasattr(last, "get") else float(last["low"])
-        open_val = last.get("open", c) if hasattr(last, "get") else float(last["open"])
-        body_ratio = abs(c - open_val) / max(high_val - low_val, 0.01)
+        dist_ema50  = _get(ind, "dist_ema50_pct",    0.0)
+        dist_ema200 = _get(ind, "dist_ema200_pct",   0.0)
+        prev_range  = _get(ind, "prev_candle_range",  atr)
+
+        # ── FIX: use .get() on the Series/row correctly ──
+        # df.iloc[-1] returns a pandas Series; attribute access works but
+        # .get() is not guaranteed on all pandas versions — use [] with try/except.
+        try:
+            high_val = float(last["high"])
+            low_val  = float(last["low"])
+            open_val = float(last["open"])
+        except (KeyError, TypeError):
+            high_val = low_val = open_val = c
+
+        candle_range = max(high_val - low_val, 0.0001)   # avoid /0
+        body_ratio   = abs(c - open_val) / candle_range
 
         # RSI slope
         rsi_series = _build_rsi_series(close)
@@ -116,13 +143,18 @@ def _build_live_features(df: pd.DataFrame, ind: Optional[Dict]) -> Optional[list
 
         # Bias encoding
         import shared_state
-        h4_map = {"BULLISH": 1, "BEARISH": -1, "NEUTRAL": 0, "UNKNOWN": 0}
-        h4_enc = h4_map.get(shared_state.get("h4_trend") or "NEUTRAL", 0)
-        h1_enc = h4_map.get(shared_state.get("h1_trend") or "NEUTRAL", 0)
+        bias_map = {"BULLISH": 1, "BEARISH": -1, "NEUTRAL": 0, "UNKNOWN": 0}
+        h4_enc = bias_map.get(shared_state.get("h4_trend") or "NEUTRAL", 0)
+        h1_enc = bias_map.get(shared_state.get("h1_trend") or "NEUTRAL", 0)
 
+        # ── FIX: guard against e50 == 0 (shouldn't happen but be safe) ──
         ema_slope = (e20 - e50) / (e50 + 1e-9)
 
-        ts      = pd.Timestamp(last["time"])
+        # ── FIX: handle both Timestamp and plain datetime / string ──
+        try:
+            ts = pd.Timestamp(last["time"])
+        except Exception:
+            ts = pd.Timestamp.now()
         hour    = ts.hour
         dow     = ts.dayofweek
         session = _encode_session(hour)
@@ -136,6 +168,16 @@ def _build_live_features(df: pd.DataFrame, ind: Optional[Dict]) -> Optional[list
         ]
 
         logger.debug("ML features: %s", [round(f, 3) for f in features])
+
+        # ── Sanity check: warn if every feature is zero (bad indicator feed) ──
+        non_zero = sum(1 for f in features if f != 0.0)
+        if non_zero < 3:
+            logger.warning(
+                "ML: only %d / %d features are non-zero — "
+                "indicators dict may not be populated yet. Features: %s",
+                non_zero, len(features), features,
+            )
+
         return features
 
     except Exception as exc:
