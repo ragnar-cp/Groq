@@ -16,7 +16,10 @@ logger = logging.getLogger(__name__)
 def calculate_indicators(df: pd.DataFrame) -> Optional[Dict]:
     """
     Calculate all indicators for a given candle DataFrame.
-    Returns a dict of key→value pairs that get written to shared_state.
+    Returns a dict of key→value pairs AND writes them to shared_state.
+
+    BUG FIX: previously this function returned a dict but never wrote
+    it to shared_state, so predict() was always reading zeros.
     """
     if df is None or len(df) < 50:
         return None
@@ -69,19 +72,65 @@ def calculate_indicators(df: pd.DataFrame) -> Optional[Dict]:
     result["key_resistance"] = float(resistance)
 
     # ── Daily High / Low ─────────────────────────────────────
-    result["daily_high"] = float(high.tail(96).max())   # ~1 day of M15
+    result["daily_high"] = float(high.tail(96).max())
     result["daily_low"]  = float(low.tail(96).min())
 
-    # ── ML features (also stored for predict.py) ─────────────
+    # ── ML features ──────────────────────────────────────────
     last_close = float(close.iloc[-1])
-    result["dist_ema50_pct"]  = (last_close - result["ema50_h1"])  / result["ema50_h1"]  * 100
-    result["dist_ema200_pct"] = (last_close - result["ema200_h1"]) / result["ema200_h1"] * 100
+    e50  = result["ema50_h1"]
+    e200 = result["ema200_h1"]
+    result["dist_ema50_pct"]    = (last_close - e50)  / e50  * 100 if e50  != 0 else 0.0
+    result["dist_ema200_pct"]   = (last_close - e200) / e200 * 100 if e200 != 0 else 0.0
     result["prev_candle_range"] = float(high.iloc[-2] - low.iloc[-2])
+
+    # ── BUG FIX: write every indicator into shared_state ─────
+    # Without this, shared_state retains its initial 0.0 values and
+    # predict() receives a zero vector regardless of market conditions.
+    for key, value in result.items():
+        shared_state.set(key, value)
+
+    logger.debug(
+        "Indicators updated → RSI=%.1f  ADX=%.1f  ATR=%.2f  BB=%.2f  "
+        "dist_ema50=%.3f  dist_ema200=%.3f",
+        result["rsi_h1"], result["adx_h1"], result["atr_h1"],
+        result["bb_position"], result["dist_ema50_pct"], result["dist_ema200_pct"],
+    )
 
     return result
 
 
-# ── Private helpers ──────────────────────────────────────────
+def calculate_and_run_ml(df: pd.DataFrame) -> tuple:
+    """
+    Convenience wrapper: calculate indicators then immediately run ML predict.
+    Call this from candle_watcher.py instead of calling them separately.
+
+    Returns (ml_score, ml_direction) and writes both to shared_state.
+
+    BUG FIX: the original flow called calculate_indicators() and predict()
+    independently, with predict() reading from shared_state which was still
+    all zeros. This function ensures the freshly-computed indicator dict is
+    passed directly to predict() in the same call.
+    """
+    indicators = calculate_indicators(df)
+    if indicators is None:
+        logger.warning("ML skipped — indicators returned None (not enough candles?)")
+        return 0.0, "NONE"
+
+    from ml.predict import predict
+    score, direction = predict(df, indicators)
+
+    shared_state.set("ml_score",     score)
+    shared_state.set("ml_direction", direction)
+
+    logger.info(
+        "ML result → %.1f%%  %s  (RSI=%.1f  ADX=%.1f  dist50=%.3f)",
+        score * 100, direction,
+        indicators["rsi_h1"], indicators["adx_h1"], indicators["dist_ema50_pct"],
+    )
+    return score, direction
+
+
+# ── Private helpers ───────────────────────────────────────────
 
 def _rsi(close: pd.Series, period: int = 14) -> float:
     delta = close.diff()
@@ -95,11 +144,11 @@ def _rsi(close: pd.Series, period: int = 14) -> float:
 
 
 def _macd(close: pd.Series, fast=12, slow=26, signal=9):
-    ema_fast   = close.ewm(span=fast,   adjust=False).mean()
-    ema_slow   = close.ewm(span=slow,   adjust=False).mean()
-    macd_line  = ema_fast - ema_slow
-    signal_line= macd_line.ewm(span=signal, adjust=False).mean()
-    histogram  = macd_line - signal_line
+    ema_fast    = close.ewm(span=fast,   adjust=False).mean()
+    ema_slow    = close.ewm(span=slow,   adjust=False).mean()
+    macd_line   = ema_fast - ema_slow
+    signal_line = macd_line.ewm(span=signal, adjust=False).mean()
+    histogram   = macd_line - signal_line
     return macd_line.iloc[-1], signal_line.iloc[-1], histogram.iloc[-1]
 
 
@@ -147,7 +196,6 @@ def _support_resistance(
     close: pd.Series,
     lookback: int = 50,
 ) -> tuple:
-    """Simple pivot-based S&R: nearest swing high/low to current price."""
     recent_high = high.tail(lookback)
     recent_low  = low.tail(lookback)
     current     = float(close.iloc[-1])
@@ -172,6 +220,5 @@ def _support_resistance(
 
 
 def _prev(value: float, df: pd.DataFrame, close: pd.Series) -> float:
-    """Helper — returns previous MACD histogram value (simplified)."""
     _, _, hist = _macd(close.iloc[:-1])
     return float(hist)
