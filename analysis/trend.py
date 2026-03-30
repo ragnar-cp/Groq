@@ -15,13 +15,13 @@ def calculate_trend(df: pd.DataFrame) -> str:
     Determine trend for a given candle DataFrame.
     Returns: "BULLISH" | "BEARISH" | "NEUTRAL"
 
-    Rules (ALL must be true for a clear direction):
-      BULLISH: close > EMA200, EMA20 > EMA50, Higher Highs + Higher Lows,
-               last close above EMA20
-      BEARISH: close < EMA200, EMA20 < EMA50, Lower Highs + Lower Lows,
-               last close below EMA20
+    Scoring system — 4 conditions, need 3/4 for a clear direction:
+      1. Price vs EMA200
+      2. EMA20 vs EMA50
+      3. Recent market structure (last 30 candles only)
+      4. Last candle close vs EMA20
     """
-    if df is None or len(df) < config.EMA_SLOW + 5:
+    if df is None or len(df) < 30:
         return "NEUTRAL"
 
     df = df.copy()
@@ -29,60 +29,66 @@ def calculate_trend(df: pd.DataFrame) -> str:
     df["ema50"]  = df["close"].ewm(span=config.EMA_MID,   adjust=False).mean()
     df["ema200"] = df["close"].ewm(span=config.EMA_SLOW,  adjust=False).mean()
 
-    last = df.iloc[-1]
-    close   = last["close"]
-    ema20   = last["ema20"]
-    ema50   = last["ema50"]
-    ema200  = last["ema200"]
+    last    = df.iloc[-1]
+    close   = float(last["close"])
+    ema20   = float(last["ema20"])
+    ema50   = float(last["ema50"])
+    ema200  = float(last["ema200"])
 
-    # Market structure
-    structure = _detect_structure(df)
+    # Condition 1: Price vs EMA200
+    c1_bull = close > ema200
+    c1_bear = close < ema200
 
-    bullish_conditions = [
-        close > ema200,
-        ema20 > ema50,
-        structure == "BULLISH",
-        close > ema20,
-    ]
-    bearish_conditions = [
-        close < ema200,
-        ema20 < ema50,
-        structure == "BEARISH",
-        close < ema20,
-    ]
+    # Condition 2: EMA20 vs EMA50
+    c2_bull = ema20 > ema50
+    c2_bear = ema20 < ema50
 
-    bull_score = sum(bullish_conditions)
-    bear_score = sum(bearish_conditions)
+    # Condition 3: Recent market structure (last 30 candles only)
+    structure = _detect_structure(df, lookback=30)
+    c3_bull = structure == "BULLISH"
+    c3_bear = structure == "BEARISH"
 
-    if bull_score == 4:
+    # Condition 4: Last close vs EMA20
+    c4_bull = close > ema20
+    c4_bear = close < ema20
+
+    bull_score = sum([c1_bull, c2_bull, c3_bull, c4_bull])
+    bear_score = sum([c1_bear, c2_bear, c3_bear, c4_bear])
+
+    logger.debug(
+        "Trend scores — BULL: %d/4 (EMA200:%s EMA2050:%s Struct:%s Close:%s) "
+        "BEAR: %d/4",
+        bull_score, c1_bull, c2_bull, c3_bull, c4_bull,
+        bear_score
+    )
+
+    # Need 3 out of 4 conditions (was 4/4 — too strict)
+    if bull_score >= 3:
         return "BULLISH"
-    elif bear_score == 4:
-        return "BEARISH"
-    elif bull_score >= 3:
-        return "BULLISH"   # Strong lean
     elif bear_score >= 3:
         return "BEARISH"
     else:
         return "NEUTRAL"
 
 
-def _detect_structure(df: pd.DataFrame, lookback: int = 20) -> str:
+def _detect_structure(df: pd.DataFrame, lookback: int = 30) -> str:
     """
     Detect Higher Highs/Higher Lows (bullish) or
-    Lower Highs/Lower Lows (bearish) using recent swing points.
+    Lower Highs/Lower Lows (bearish) using recent swing points only.
+    Uses last `lookback` candles for responsiveness.
     """
+    # Only look at recent candles
     recent = df.tail(lookback)
     highs  = recent["high"].values
     lows   = recent["low"].values
 
-    # Find local swing highs and lows (simple pivot detection)
-    swing_highs = _find_swings(highs, mode="high")
-    swing_lows  = _find_swings(lows,  mode="low")
+    swing_highs = _find_swings(highs, mode="high", window=2)
+    swing_lows  = _find_swings(lows,  mode="low",  window=2)
 
     if len(swing_highs) < 2 or len(swing_lows) < 2:
-        return "NEUTRAL"
+        # Not enough swings — fall back to simple slope check
+        return _slope_structure(df.tail(lookback))
 
-    # Check last two swings
     hh = swing_highs[-1] > swing_highs[-2]   # Higher High
     hl = swing_lows[-1]  > swing_lows[-2]    # Higher Low
     lh = swing_highs[-1] < swing_highs[-2]   # Lower High
@@ -95,8 +101,32 @@ def _detect_structure(df: pd.DataFrame, lookback: int = 20) -> str:
     return "NEUTRAL"
 
 
-def _find_swings(values: np.ndarray, mode: str, window: int = 3) -> list:
-    """Return values at local peaks (mode=high) or troughs (mode=low)."""
+def _slope_structure(df: pd.DataFrame) -> str:
+    """
+    Fallback: use simple linear regression slope of closes.
+    Positive slope = bullish structure, negative = bearish.
+    """
+    closes = df["close"].values
+    n      = len(closes)
+    if n < 5:
+        return "NEUTRAL"
+
+    x     = np.arange(n)
+    slope = np.polyfit(x, closes, 1)[0]
+
+    # Normalise slope as % of price
+    slope_pct = slope / closes.mean() * 100
+
+    if slope_pct > 0.01:    # Rising at least 0.01% per candle
+        return "BULLISH"
+    elif slope_pct < -0.01:
+        return "BEARISH"
+    return "NEUTRAL"
+
+
+def _find_swings(values: np.ndarray, mode: str, window: int = 2) -> list:
+    """Return values at local peaks (mode=high) or troughs (mode=low).
+    Window=2 means look 2 candles either side — more responsive than 3."""
     swings = []
     for i in range(window, len(values) - window):
         segment = values[i - window : i + window + 1]
