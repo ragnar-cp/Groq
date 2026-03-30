@@ -66,8 +66,9 @@ def _cmd_status() -> str:
     h1      = shared_state.get("h1_trend")    or "UNKNOWN"
     bias    = shared_state.get("bias_state")  or "UNKNOWN"
     side    = shared_state.get("allowed_side")or "NONE"
-    ml      = shared_state.get("ml_score")    or 0.0
-    ml_dir  = shared_state.get("ml_direction")or "NONE"
+    ml      = shared_state.get("ml_score")    # Don't use "or 0.0" — would erase valid 0.5
+    ml      = ml if ml is not None else 0.0
+    ml_dir  = shared_state.get("ml_direction") or "NONE"
     auto    = "✅ ON" if shared_state.get("auto_exec") else "❌ OFF"
     paused  = shared_state.get("bot_paused")
     d_pause = shared_state.get("daily_paused")
